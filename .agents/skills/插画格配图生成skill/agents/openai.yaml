@@ -1,8 +1,0 @@
-interface:
-  display_name: "插画格配图生成"
-  short_description: "为中文文章生成三张温暖手绘漫画配图"
-  brand_color: "#E07A5F"
-  default_prompt: "Use $插画格配图生成skill to generate three warm hand-drawn comic illustrations for this finished Chinese article."
-
-policy:
-  allow_implicit_invocation: true
