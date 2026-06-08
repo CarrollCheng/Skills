@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>2026 AI产品经理求职指南 · 本地草稿预览</title>
+  <style>
+    :root {
+      --ink: #20242a;
+      --muted: #6f7782;
+      --line: #d9ded7;
+      --paper: #fffdf7;
+      --panel: #f6f4eb;
+      --field: #ffffff;
+      --sage: #5f7d6d;
+      --sage-dark: #2f5948;
+      --clay: #c86442;
+      --sky: #6689a4;
+      --gold: #c79538;
+      --shadow: 0 18px 44px rgba(33, 40, 45, 0.12);
+      --radius: 8px;
+      color-scheme: light;
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      background:
+        linear-gradient(90deg, rgba(47,89,72,.05) 1px, transparent 1px),
+        linear-gradient(rgba(47,89,72,.05) 1px, transparent 1px),
+        #ece8dc;
+      background-size: 28px 28px;
+      color: var(--ink);
+      font-family: "Avenir Next", "PingFang SC", "Hiragino Sans GB", sans-serif;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--field);
+      color: var(--ink);
+      font: inherit;
+      min-height: 34px;
+      padding: 0 12px;
+      cursor: pointer;
+    }
+
+    button:hover { border-color: var(--sage); color: var(--sage-dark); }
+    button.is-active { background: var(--sage-dark); border-color: var(--sage-dark); color: #fff; }
+
+    .app {
+      display: grid;
+      grid-template-columns: 268px minmax(420px, 1fr) 296px;
+      min-height: 100vh;
+    }
+
+    .rail,
+    .inspector {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: auto;
+      background: rgba(246,244,235,.94);
+      border-right: 1px solid var(--line);
+      padding: 20px;
+    }
+
+    .inspector {
+      border-right: 0;
+      border-left: 1px solid var(--line);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+
+    .mark {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 6px;
+      background: var(--sage-dark);
+      color: #fff;
+      font-weight: 800;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.2;
+    }
+
+    .brand small { display: block; color: var(--muted); margin-top: 2px; }
+
+    .block {
+      border-top: 1px solid var(--line);
+      padding-top: 16px;
+      margin-top: 16px;
+    }
+
+    .block h2 {
+      margin: 0 0 10px;
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 700;
+      letter-spacing: .04em;
+    }
+
+    .file-row,
+    .check-row,
+    .image-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 9px 0;
+      border-bottom: 1px solid rgba(217,222,215,.75);
+      font-size: 13px;
+    }
+
+    .file-row strong,
+    .image-row strong { font-weight: 700; }
+
+    .badge {
+      border: 1px solid rgba(95,125,109,.35);
+      color: var(--sage-dark);
+      background: rgba(95,125,109,.1);
+      border-radius: 99px;
+      padding: 2px 8px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .warn { color: var(--clay); }
+    .ok { color: var(--sage-dark); }
+
+    .workspace {
+      min-width: 0;
+      padding: 20px 28px 42px;
+    }
+
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin: -20px -28px 24px;
+      padding: 14px 28px;
+      background: rgba(236,232,220,.88);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(14px);
+    }
+
+    .segmented {
+      display: flex;
+      gap: 6px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255,255,255,.55);
+    }
+
+    .meta-line {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .draft-frame {
+      max-width: 820px;
+      margin: 0 auto;
+      background: var(--paper);
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(217,222,215,.85);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .article {
+      padding: 54px 72px 70px;
+      font-family: "Songti SC", "STSong", "Noto Serif CJK SC", serif;
+      line-height: 1.88;
+      font-size: 18px;
+    }
+
+    .article.knowledge {
+      font-family: "PingFang SC", "Hiragino Sans GB", sans-serif;
+      font-size: 17px;
+      line-height: 1.82;
+    }
+
+    .article.longform {
+      max-width: 620px;
+      margin: 0 auto;
+      padding-left: 34px;
+      padding-right: 34px;
+      font-size: 18px;
+    }
+
+    .article h1 {
+      margin: 0 0 18px;
+      font-size: 38px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .article h2 {
+      margin: 42px 0 14px;
+      padding-top: 18px;
+      border-top: 1px solid rgba(32,36,42,.12);
+      font-size: 26px;
+      line-height: 1.35;
+    }
+
+    .article h3 {
+      margin: 28px 0 10px;
+      font-size: 20px;
+      color: var(--sage-dark);
+    }
+
+    .article h4 {
+      margin: 20px 0 8px;
+      font-size: 18px;
+      color: var(--clay);
+    }
+
+    .article p { margin: 12px 0; }
+    .article ul, .article ol { margin: 10px 0 18px; padding-left: 1.4em; }
+    .article li { margin: 4px 0; }
+
+    .article hr {
+      margin: 36px 0;
+      border: 0;
+      border-top: 1px solid rgba(32,36,42,.14);
+    }
+
+    .cover-note {
+      margin: 0 0 26px;
+      color: var(--muted);
+      font-size: 15px;
+      font-family: "Avenir Next", "PingFang SC", sans-serif;
+    }
+
+    figure {
+      margin: 34px -24px 36px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid rgba(32,36,42,.12);
+      background: #f1eadc;
+    }
+
+    figure img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    figcaption {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: var(--muted);
+      font-family: "Avenir Next", "PingFang SC", sans-serif;
+      background: rgba(255,255,255,.72);
+    }
+
+    .slot {
+      color: var(--sage-dark);
+      font-weight: 700;
+    }
+
+    .position-tools {
+      display: flex;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .position-tools button {
+      flex: 1;
+      font-size: 13px;
+    }
+
+    .mini-preview {
+      width: 64px;
+      height: 38px;
+      object-fit: cover;
+      border-radius: 4px;
+      border: 1px solid var(--line);
+    }
+
+    .note {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 1100px) {
+      .app { grid-template-columns: 220px minmax(0, 1fr); }
+      .inspector { display: none; }
+      .article { padding: 42px 44px 54px; }
+    }
+
+    @media (max-width: 760px) {
+      .app { display: block; }
+      .rail { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+      .workspace { padding: 14px; }
+      .toolbar { position: static; margin: -14px -14px 16px; padding: 12px 14px; align-items: flex-start; flex-direction: column; }
+      .draft-frame { border-radius: 0; }
+      .article, .article.longform { padding: 30px 22px 42px; font-size: 16px; }
+      .article h1 { font-size: 28px; }
+      figure { margin-left: -8px; margin-right: -8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="rail">
+      <div class="brand">
+        <div class="mark">稿</div>
+        <div>
+          <h1>本地草稿预览</h1>
+          <small>文章 + 配图 + 位置</small>
+        </div>
+      </div>
+
+      <div class="block">
+        <h2>当前文件</h2>
+        <div class="file-row"><strong>求职指南.md</strong><span class="badge">5.3 KB</span></div>
+        <div class="file-row"><strong>images/</strong><span class="badge">3 张</span></div>
+        <div class="file-row"><strong>manifest.json</strong><span class="badge">已识别</span></div>
+      </div>
+
+      <div class="block">
+        <h2>配图状态</h2>
+        <div class="image-row" data-target="fig-front"><img class="mini-preview" src="images/01-front.jpg" alt=""><strong>01-front</strong><span class="ok">已插入</span></div>
+        <div class="image-row" data-target="fig-middle"><img class="mini-preview" src="images/02-middle.jpg" alt=""><strong>02-middle</strong><span class="ok">已插入</span></div>
+        <div class="image-row" data-target="fig-ending"><img class="mini-preview" src="images/03-ending.jpg" alt=""><strong>03-ending</strong><span class="ok">已插入</span></div>
+      </div>
+
+      <div class="block">
+        <h2>草稿检查</h2>
+        <div class="check-row"><span>文章结构</span><strong class="ok">正常</strong></div>
+        <div class="check-row"><span>图片路径</span><strong class="ok">有效</strong></div>
+        <div class="check-row"><span>插图分布</span><strong class="ok">前/中/后</strong></div>
+        <div class="check-row"><span>可导出</span><strong class="ok">HTML</strong></div>
+      </div>
+    </aside>
+
+    <main class="workspace">
+      <div class="toolbar">
+        <div>
+          <div class="meta-line">
+            <span>2026AI产品经理</span>
+            <span>3 张配图</span>
+            <span>本地预览</span>
+          </div>
+        </div>
+        <div class="segmented" aria-label="预览样式">
+          <button class="is-active" data-style="wechat">公众号</button>
+          <button data-style="knowledge">知识文</button>
+          <button data-style="longform">长图</button>
+        </div>
+      </div>
+
+      <div class="draft-frame">
+        <article id="article" class="article wechat">
+          <h1>2026，AI产品经理求职指南</h1>
+          <p class="cover-note">本地草稿预览：系统已根据文章前 30%、中间 30%、最后 30% 自动插入三张配图。</p>
+
+          <h2>前言</h2>
+          <p>2026年的AI行业已经从“模型竞争”逐步进入“产品竞争”阶段。对于希望进入AI领域的产品经理而言，仅了解大模型概念已经远远不够。企业更关注候选人是否具备AI产品设计能力、数据思维、业务理解能力以及跨团队协作能力。</p>
+          <p>本文将从行业趋势、能力模型、求职准备、面试策略和职业规划五个维度，为AI产品经理求职者提供一份系统指南。</p>
+
+          <figure id="fig-front">
+            <img src="images/01-front.jpg" alt="前段配图：AI产品经理求职者看到行业机会">
+            <figcaption><span class="slot">前段配图</span><span>行业机会与入场判断</span></figcaption>
+          </figure>
+
+          <h2>一、2026年AI产品经理市场现状</h2>
+          <h3>1.1 AI产品岗位持续增长</h3>
+          <p>随着大模型基础设施成熟，越来越多企业开始探索：</p>
+          <ul>
+            <li>AI Agent产品</li>
+            <li>企业知识库产品</li>
+            <li>AI办公协同工具</li>
+            <li>AI营销与销售助手</li>
+            <li>AI教育产品</li>
+            <li>AI研发效率工具</li>
+          </ul>
+          <p>市场需求已从“算法工程师优先”转向“产品+业务落地优先”。</p>
+
+          <h3>1.2 企业最关注什么</h3>
+          <ol>
+            <li>是否理解LLM工作原理</li>
+            <li>是否能够设计AI工作流</li>
+            <li>是否具备用户洞察能力</li>
+            <li>是否拥有实际项目经验</li>
+            <li>是否能够推动商业化落地</li>
+          </ol>
+
+          <h2>二、AI产品经理核心能力模型</h2>
+          <h3>2.1 AI技术理解能力</h3>
+          <p>不要求成为算法专家，但需要掌握 Transformer、Prompt Engineering、RAG架构、Agent架构、Function Calling、MCP生态和多模态能力。</p>
+          <p>建议熟悉 OpenAI API、Claude API、Gemini API、LangChain、Dify、Coze 等工具生态。</p>
+
+          <h3>2.2 产品设计能力</h3>
+          <p>重点能力包括用户需求分析、用户旅程设计、AI交互设计、Agent工作流设计和数据指标体系设计。</p>
+          <p>传统搜索是“输入关键词 → 返回结果”；AI搜索则是“意图理解 → 检索增强 → 推理生成 → 输出答案”。</p>
+
+          <h3>2.3 商业化能力</h3>
+          <p>企业越来越重视用户增长、付费转化、留存优化、SaaS商业模式和AI成本控制。产品经理需要理解 Token成本、推理成本、LTV 和 CAC。</p>
+
+          <h2>三、求职前的能力建设路线</h2>
+          <h3>第一阶段：建立AI认知（1个月）</h3>
+          <p>学习 ChatGPT、Claude、Gemini、DeepSeek 和 OpenAI 生态，目标是能解释什么是大模型、RAG、Agent 和 Prompt。</p>
+
+          <figure id="fig-middle">
+            <img src="images/02-middle.jpg" alt="中段配图：求职者搭建能力路线和作品集">
+            <figcaption><span class="slot">中段配图</span><span>能力建设与作品集路线</span></figcaption>
+          </figure>
+
+          <h3>第二阶段：完成AI项目（2个月）</h3>
+          <p>推荐项目包括 AI知识库、AI Agent 和行业AI应用。每个项目都要能说明用户痛点、产品方案、原型设计、数据结果和复盘总结。</p>
+          <h4>项目1：AI知识库</h4>
+          <ul>
+            <li>文档上传</li>
+            <li>RAG检索</li>
+            <li>问答系统</li>
+          </ul>
+          <h4>项目2：AI Agent</h4>
+          <ul>
+            <li>工具调用</li>
+            <li>任务规划</li>
+            <li>自动执行</li>
+          </ul>
+          <h4>项目3：行业AI应用</h4>
+          <p>例如 AI招聘助手、AI客服、AI销售助手、AI教育顾问。</p>
+
+          <h3>第三阶段：形成作品集</h3>
+          <p>作品集建议包含项目背景、用户痛点、产品方案、原型设计、数据结果和复盘总结。</p>
+
+          <h2>四、简历优化策略</h2>
+          <h3>4.1 简历结构</h3>
+          <p>建议采用个人简介、核心技能、项目经历、工作经历、教育背景的结构。</p>
+
+          <h3>4.2 AI项目描述模板</h3>
+          <p>项目名称：企业知识库Agent。背景是企业内部知识分散，检索效率低。解决方案是基于RAG架构设计智能知识助手。</p>
+          <p>个人贡献包括用户调研、产品设计、Prompt设计和数据指标设计。结果可以呈现为检索效率提升、用户满意度提升和月活增长。</p>
+
+          <h3>4.3 高频关键词</h3>
+          <p>简历中建议出现 AI Agent、RAG、LLM、Prompt Engineering、MCP、Workflow、A/B Test、用户增长、SaaS 和数据分析。</p>
+
+          <h2>五、面试准备指南</h2>
+          <h3>5.1 高频技术问题</h3>
+          <p>回答“什么是RAG”时，可按定义、工作流程、优势、适用场景展开。回答 Agent 和 Workflow 的区别时，重点说明 Workflow 固定可预测，而 Agent 更强调自主决策和动态规划。</p>
+
+          <h3>5.2 高频产品问题</h3>
+          <ul>
+            <li>如何设计AI搜索产品？</li>
+            <li>如何提升AI回答准确率？</li>
+            <li>如何评估Agent效果？</li>
+            <li>如何降低幻觉问题？</li>
+          </ul>
+
+          <h3>5.3 高频业务问题</h3>
+          <ul>
+            <li>AI产品如何收费？</li>
+            <li>如何提高用户留存？</li>
+            <li>如何实现商业闭环？</li>
+          </ul>
+
+          <h2>六、作品集与个人品牌建设</h2>
+          <p>建议同步运营 LinkedIn、GitHub 和个人博客，持续发布 AI产品分析、行业观察、项目复盘、Prompt案例、Agent工作流、产品思考、AI应用拆解和面试经验。</p>
+
+          <h2>七、2026年重点招聘方向</h2>
+          <p>第一梯队包括 OpenAI、Anthropic、Google DeepMind、Microsoft AI。第二梯队包括字节跳动、腾讯、阿里云、百度、美团。第三梯队则集中在 Agent平台、AI SaaS、AI教育和AI营销等创业公司。</p>
+
+          <figure id="fig-ending">
+            <img src="images/03-ending.jpg" alt="尾段配图：求职者带作品集进入面试">
+            <figcaption><span class="slot">尾段配图</span><span>面试收束与职业路径</span></figcaption>
+          </figure>
+
+          <h2>八、未来三年职业发展路径</h2>
+          <h3>路径一：AI产品经理</h3>
+          <p>AI产品经理 → 高级产品经理 → 产品总监</p>
+          <h3>路径二：AI解决方案专家</h3>
+          <p>产品经理 → AI顾问 → 解决方案负责人</p>
+          <h3>路径三：创业方向</h3>
+          <p>AI产品经理 → 创业合伙人 → 创始人</p>
+
+          <h2>结语</h2>
+          <p>2026年的AI产品经理不再只是传统产品经理加上一层AI概念，而是需要具备“技术理解 + 产品设计 + 商业思维”的复合能力。</p>
+          <p>真正具有竞争力的候选人，往往能够独立完成从需求洞察、方案设计、AI能力集成到商业化落地的完整闭环。</p>
+          <p>未来三年，AI产品经理仍将是最具成长性的职业方向之一。尽早积累项目经验、打造作品集、建立行业影响力，将显著提升求职成功率。</p>
+        </article>
+      </div>
+    </main>
+
+    <aside class="inspector">
+      <div class="block" style="border-top:0;margin-top:0;padding-top:0">
+        <h2>图片位置</h2>
+        <div class="note" id="selected-copy">当前选中：前段配图</div>
+        <div class="position-tools">
+          <button id="move-up">上移</button>
+          <button id="move-down">下移</button>
+        </div>
+      </div>
+
+      <div class="block">
+        <h2>阅读节奏</h2>
+        <div class="check-row"><span>标题</span><strong>1</strong></div>
+        <div class="check-row"><span>一级章节</span><strong>8</strong></div>
+        <div class="check-row"><span>配图</span><strong>3</strong></div>
+        <div class="check-row"><span>建议封面</span><strong>01-front</strong></div>
+      </div>
+
+      <div class="block">
+        <h2>输出</h2>
+        <button id="download-page" style="width:100%">下载当前 HTML</button>
+        <p class="note">导出会保留当前文章排版和图片位置，适合二次检查。</p>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    const article = document.getElementById("article");
+    const styleButtons = document.querySelectorAll("[data-style]");
+    const rows = document.querySelectorAll("[data-target]");
+    const selectedCopy = document.getElementById("selected-copy");
+    let selectedFigure = document.getElementById("fig-front");
+
+    styleButtons.forEach(button => {
+      button.addEventListener("click", () => {
+        styleButtons.forEach(item => item.classList.remove("is-active"));
+        button.classList.add("is-active");
+        article.className = "article " + button.dataset.style;
+      });
+    });
+
+    rows.forEach(row => {
+      row.addEventListener("click", () => {
+        selectedFigure = document.getElementById(row.dataset.target);
+        selectedCopy.textContent = "当前选中：" + selectedFigure.querySelector(".slot").textContent;
+        selectedFigure.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    });
+
+    document.getElementById("move-up").addEventListener("click", () => {
+      const previous = selectedFigure.previousElementSibling;
+      if (previous && previous.tagName !== "H1") {
+        article.insertBefore(selectedFigure, previous);
+        selectedFigure.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    });
+
+    document.getElementById("move-down").addEventListener("click", () => {
+      const next = selectedFigure.nextElementSibling;
+      if (next && next.nextElementSibling) {
+        article.insertBefore(selectedFigure, next.nextElementSibling);
+        selectedFigure.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    });
+
+    document.getElementById("download-page").addEventListener("click", () => {
+      const blob = new Blob([document.documentElement.outerHTML], { type: "text/html;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "article-preview.html";
+      link.click();
+      URL.revokeObjectURL(url);
+    });
+  </script>
+</body>
+</html>

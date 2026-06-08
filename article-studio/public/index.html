@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>文章配图工作台</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Local Article Studio</p>
+          <h1>文章配图工作台</h1>
+        </div>
+        <div class="status-strip" aria-live="polite">
+          <span id="deepseekStatus" class="status-pill">DeepSeek 检查中</span>
+          <span id="apimartStatus" class="status-pill">APIMart 检查中</span>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <aside class="left-panel panel">
+          <section class="control-section">
+            <div class="section-title">
+              <span>输入</span>
+              <button id="sampleBtn" class="icon-button" title="载入示例稿" type="button">◇</button>
+            </div>
+            <label>
+              <span>关键词</span>
+              <input id="keywordInput" type="text" value="AI产品经理求职指南" autocomplete="off" />
+            </label>
+            <label>
+              <span>写作角度</span>
+              <textarea id="angleInput" rows="3" placeholder="例如：写给准备转行的产品经理，强调作品集和面试策略"></textarea>
+            </label>
+            <div class="field-grid">
+              <label>
+                <span>平台</span>
+                <select id="platformInput">
+                  <option value="公众号">公众号</option>
+                  <option value="小红书">小红书</option>
+                  <option value="知乎">知乎</option>
+                  <option value="知识星球">知识星球</option>
+                </select>
+              </label>
+              <label>
+                <span>字数</span>
+                <input id="wordCountInput" type="number" min="800" max="4000" step="100" value="1800" />
+              </label>
+            </div>
+            <button id="generateArticleBtn" class="primary-button" type="button">生成文章</button>
+          </section>
+
+          <section class="control-section">
+            <div class="section-title">
+              <span>正文</span>
+              <button id="applyMarkdownBtn" class="icon-button" title="应用正文修改" type="button">✓</button>
+            </div>
+            <textarea id="markdownEditor" class="markdown-editor" rows="12" placeholder="文章生成后可在这里微调 Markdown"></textarea>
+          </section>
+        </aside>
+
+        <section class="preview-panel">
+          <div class="preview-toolbar panel">
+            <div class="segmented" aria-label="预览样式">
+              <button class="segment is-active" data-style="wechat" type="button">公众号</button>
+              <button class="segment" data-style="essay" type="button">知识文</button>
+              <button class="segment" data-style="longform" type="button">长图</button>
+            </div>
+            <div class="toolbar-actions">
+              <button id="generateImagesBtn" class="secondary-button" type="button" disabled>生成配图</button>
+              <button id="downloadBtn" class="primary-button" type="button" disabled>下载 HTML</button>
+            </div>
+          </div>
+
+          <article id="articlePreview" class="article-preview wechat panel" aria-live="polite">
+            <div class="empty-state">
+              <h2>等待生成</h2>
+              <p>输入关键词后生成文章，再生成三张配图。</p>
+            </div>
+          </article>
+        </section>
+
+        <aside class="right-panel panel">
+          <section class="control-section">
+            <div class="section-title">
+              <span>配图</span>
+              <span id="imageCount" class="mini-count">0/3</span>
+            </div>
+            <div id="imageList" class="image-list"></div>
+          </section>
+
+          <section class="control-section inspector">
+            <div class="section-title">
+              <span>调整</span>
+              <span id="selectedSlot" class="mini-count">未选择</span>
+            </div>
+            <div class="button-grid">
+              <button id="moveUpBtn" class="tool-button" title="上移配图" type="button" disabled>↑</button>
+              <button id="moveDownBtn" class="tool-button" title="下移配图" type="button" disabled>↓</button>
+              <button id="regenerateBtn" class="tool-button" title="重新生成配图" type="button" disabled>↻</button>
+              <button id="deleteBtn" class="tool-button danger" title="删除配图" type="button" disabled>×</button>
+            </div>
+            <label>
+              <span>比例</span>
+              <select id="imageSizeInput">
+                <option value="16:9">横向 16:9</option>
+                <option value="1:1">方形 1:1</option>
+              </select>
+            </label>
+            <label>
+              <span>清晰度</span>
+              <select id="resolutionInput">
+                <option value="2K">2K</option>
+                <option value="1K">1K</option>
+                <option value="4K">4K</option>
+              </select>
+            </label>
+          </section>
+
+          <section class="control-section">
+            <div class="section-title">
+              <span>日志</span>
+              <button id="clearLogBtn" class="icon-button" title="清空日志" type="button">×</button>
+            </div>
+            <pre id="logBox" class="log-box"></pre>
+          </section>
+        </aside>
+      </main>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

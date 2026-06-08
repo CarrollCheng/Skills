@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>早读神器 — 游戏化分贝监测工具 Demo</title>
+<style>
+  :root {
+    --bg: #FFF8E7;
+    --panel-bg: #FFF;
+    --text: #333;
+    --accent: #FF8C42;
+    --danger: #E74C3C;
+    --success: #27AE60;
+    --gold: #F1C40F;
+    --shadow: 0 2px 12px rgba(0,0,0,0.08);
+    --radius: 12px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* ── 顶部状态栏 ── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 20px;
+    background: var(--panel-bg);
+    box-shadow: var(--shadow);
+    z-index: 10;
+  }
+  .topbar .brand {
+    font-size: 20px;
+    font-weight: 700;
+    white-space: nowrap;
+    margin-right: 8px;
+  }
+  .stat-card {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #F8F9FA;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .stat-card .icon { font-size: 18px; }
+  .stat-card .val { font-size: 20px; font-weight: 800; }
+  .stat-card.goal  .val { color: #1a73e8; }
+  .stat-card.current .val { color: var(--success); }
+  .stat-card.animals .val { color: var(--accent); }
+  .stat-card.combo  .val { color: var(--gold); }
+
+  .stat-card.under-threshold .val { color: var(--danger); }
+
+  .combo-fire    { box-shadow: 0 0 12px #F1C40F66; border: 2px solid #F1C40F; }
+  .combo-storm   { box-shadow: 0 0 20px #E74C3C66, 0 0 8px #F1C40F99; border: 2px solid #E74C3C; animation: pulse 0.5s infinite alternate; }
+  .combo-legend  { box-shadow: 0 0 30px #9B59B6, 0 0 16px #F1C40F, 0 0 8px #E74C3C; border: 2px solid #9B59B6; animation: rainbow-pulse 0.3s infinite alternate; }
+  @keyframes pulse { from { transform:scale(1); } to { transform:scale(1.03); } }
+  @keyframes rainbow-pulse { from { box-shadow:0 0 30px #9B59B6,0 0 16px #F1C40F,0 0 8px #E74C3C; } to { box-shadow:0 0 40px #E74C3C,0 0 24px #F1C40F,0 0 16px #9B59B6; } }
+
+  /* ── 主区域 ── */
+  .main {
+    flex: 1;
+    display: flex;
+    position: relative;
+    min-height: 0;
+  }
+
+  /* ── 画布 ── */
+  #canvas {
+    flex: 1;
+    display: block;
+    background: linear-gradient(180deg, #E8F5E9 0%, #C8E6C9 40%, #A5D6A7 100%);
+    cursor: default;
+  }
+
+  /* ── 进度条 ── */
+  .progress-bar-wrap {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60%;
+    max-width: 600px;
+    height: 14px;
+    background: #DDD;
+    border-radius: 7px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #27AE60, #2ECC71);
+    transition: width 0.3s;
+    border-radius: 7px;
+  }
+  .progress-fill.warn { background: linear-gradient(90deg, #E74C3C, #F39C12); }
+
+  /* ── 控制面板 (底部浮层) ── */
+  .controls {
+    position: absolute;
+    bottom: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--panel-bg);
+    border-radius: var(--radius);
+    padding: 12px 20px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+    z-index: 5;
+  }
+  .controls label { font-size: 13px; font-weight: 600; white-space: nowrap; }
+  .controls input[type=range] { width: 100px; accent-color: var(--accent); }
+  .controls .db-display { font-weight: 800; font-size: 15px; min-width: 50px; text-align: center; }
+
+  button {
+    border: none;
+    border-radius: 8px;
+    padding: 8px 18px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  button:active { transform: scale(0.96); }
+  .btn-start  { background: #27AE60; color: #FFF; }
+  .btn-start:hover  { background: #219A52; }
+  .btn-pause  { background: #F39C12; color: #FFF; }
+  .btn-pause:hover  { background: #D68910; }
+  .btn-stop   { background: #E74C3C; color: #FFF; }
+  .btn-stop:hover   { background: #C0392B; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ── 提示浮层 ── */
+  .toast {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #333;
+    color: #FFF;
+    padding: 10px 24px;
+    border-radius: 20px;
+    font-size: 15px;
+    font-weight: 600;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    z-index: 20;
+  }
+  .toast.show { opacity: 1; }
+
+  /* ── 总结面板 ── */
+  .summary-overlay {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 30;
+    justify-content: center;
+    align-items: center;
+  }
+  .summary-overlay.show { display: flex; }
+  .summary-card {
+    background: #FFF;
+    border-radius: 16px;
+    padding: 32px 40px;
+    text-align: center;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.2);
+    max-width: 420px;
+  }
+  .summary-card h2 { font-size: 24px; margin-bottom: 20px; }
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    font-size: 15px;
+    border-bottom: 1px solid #EEE;
+  }
+  .summary-row .v { font-weight: 700; }
+  .summary-card button { margin-top: 20px; }
+
+  /* ── 响应式 ── */
+  @media (max-width: 768px) {
+    .topbar { gap: 8px; padding: 8px 10px; flex-wrap: wrap; }
+    .stat-card { padding: 4px 8px; font-size: 12px; }
+    .stat-card .val { font-size: 16px; }
+    .controls { gap: 6px; padding: 8px 12px; bottom: 36px; }
+    .controls input[type=range] { width: 60px; }
+    button { padding: 6px 12px; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 顶部状态栏 -->
+<div class="topbar" id="topbar">
+  <span class="brand">📖 早读神器</span>
+  <div class="stat-card goal" id="statGoal">
+    <span class="icon">🎯</span><span>目标</span><span class="val" id="goalDb">60</span><span>dB</span>
+  </div>
+  <div class="stat-card current" id="statCurrent">
+    <span class="icon">📢</span><span>当前</span><span class="val" id="currentDb">--</span><span>dB</span>
+  </div>
+  <div class="stat-card animals" id="statAnimals">
+    <span class="icon">🐾</span><span>动物</span><span class="val" id="animalCount">0</span><span>只</span>
+  </div>
+  <div class="stat-card combo" id="statCombo">
+    <span class="icon">🔥</span><span class="val" id="comboLevel">-</span>
+  </div>
+</div>
+
+<!-- 主区域 -->
+<div class="main" id="mainArea">
+  <canvas id="canvas"></canvas>
+
+  <!-- 达标进度条 -->
+  <div class="progress-bar-wrap">
+    <div class="progress-fill" id="progressFill" style="width:0%"></div>
+  </div>
+
+  <!-- 控制面板 -->
+  <div class="controls" id="controls">
+    <label for="thresholdSlider">🎯 阈值:</label>
+    <input type="range" id="thresholdSlider" min="40" max="90" value="60" step="1">
+    <span class="db-display" id="thresholdDisplay">60 dB</span>
+    <button class="btn-start"  id="btnStart"  onclick="controller.start()"  >▶ 开始早读</button>
+    <button class="btn-pause"  id="btnPause"  onclick="controller.pause()"  disabled>⏸ 暂停</button>
+    <button class="btn-stop"   id="btnStop"   onclick="controller.stop()"   disabled>⏹ 结束</button>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <!-- 总结面板 -->
+  <div class="summary-overlay" id="summaryOverlay">
+    <div class="summary-card">
+      <h2>🎉 早读结束！</h2>
+      <div id="summaryContent"></div>
+      <button class="btn-start" onclick="controller.reset()">🔄 再来一轮</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// 早读神器 Demo — 核心引擎
+// ═══════════════════════════════════════════════════════════
+
+// ── DOM 引用 ──
+const $ = id => document.getElementById(id);
+const canvas = $('canvas');
+const ctx = canvas.getContext('2d');
+
+// ── 常量 ──
+const PIXEL_SCALE  = 4;          // 每个像素格放大倍数 (4x → 16×4=64px 动物)
+const SPRITE_SIZE  = 12;         // 精灵原始像素尺寸
+const ANIMAL_SIZE  = SPRITE_SIZE * PIXEL_SCALE; // 屏幕像素尺寸 48px
+const MAX_ANIMALS  = 200;
+const DB_SMOOTHING = 0.8;        // 分贝平滑系数
+const TICK_MS      = 100;        // 计算周期
+
+// ── 颜色调色板 (索引 → 颜色) ──
+const PALETTES = {
+  cat: [
+    ['#FF8C42','#FFB380','#333','#FFF'],  // 橘猫
+    ['#FF8C42','#333','#FFF','#E8D0AA'],  // 三花
+    ['#333','#555','#FFF','#E8D0AA'],     // 黑白
+    ['#999','#BBB','#333','#FFF'],        // 灰
+  ],
+  dog: [
+    ['#C49A3C','#D4A84B','#333','#FFF'],  // 柴犬
+    ['#DAA520','#E8BC40','#333','#FFF'],  // 金毛
+    ['#FFF','#333','#DDD','#555'],        // 斑点
+    ['#333','#555','#FFF','#999'],        // 黑
+  ],
+  rabbit: [
+    ['#FFF','#F5F5F5','#333','#FFCCCC'],  // 白
+    ['#AAA','#CCC','#333','#FFBBBB'],     // 灰
+    ['#8B6914','#A08040','#333','#FFCCCC'],// 棕
+    ['#FFF','#333','#DDD','#FFCCCC'],     // 黑白
+  ],
+  chick: [
+    ['#FFD700','#FFED4A','#333','#FF8C00'], // 黄
+    ['#FFF','#F5F5F5','#333','#FFAA00'],   // 白
+    ['#CD853F','#D4A84B','#333','#FF8C00'],// 棕
+    ['#FFFACD','#FFFDE0','#333','#FFAA00'],// 浅黄
+  ],
+  panda: [
+    ['#333','#FFF','#555','#EEE'],          // 经典黑白
+  ],
+};
+
+// ── 动物像素精灵定义 (12×12 grid, 0=透明, 1-4=调色板颜色索引) ──
+const SPRITES = {
+  cat: [
+    '....11..11..',
+    '...1111.1111',
+    '..1111111111',
+    '..1111111111',
+    '...11111111.',
+    '....111111..',
+    '....13.13..',
+    '...111.1111.',
+    '..1111111111',
+    '...11..11..',
+    '...11..11..',
+    '...11..11..',
+  ],
+  dog: [
+    '..11....11..',
+    '.1111..1111.',
+    '.1111111111.',
+    '.1111111111.',
+    '..11111111..',
+    '...111111...',
+    '...131113...',
+    '..11333311..',
+    '..11111111..',
+    '..111..111..',
+    '..11....11..',
+    '..11....11..',
+  ],
+  rabbit: [
+    '....11..11..',
+    '...1111.1111',
+    '...11111111.',
+    '...11111111.',
+    '...11111111.',
+    '....111111..',
+    '...1311113..',
+    '..11111111..',
+    '..11441111..',
+    '..11111111..',
+    '..11....11..',
+    '..11....11..',
+  ],
+  chick: [
+    '.....11.....',
+    '....1111....',
+    '...111111...',
+    '...111111...',
+    '..11111111..',
+    '..11111111..',
+    '..11133111..',
+    '..11111111..',
+    '...111111...',
+    '...111111...',
+    '...111111...',
+    '....1..1....',
+  ],
+  panda: [
+    '...1111.1111',
+    '..1111111111',
+    '..1111111111',
+    '..11222211..',
+    '..12211221..',
+    '..12211221..',
+    '..11111111..',
+    '..11111111..',
+    '...111111...',
+    '...112211...',
+    '...11..11...',
+    '...11..11...',
+  ],
+};
+
+// ── 音频引擎 ──
+class AudioEngine {
+  constructor() {
+    this.ctx = null;
+    this.analyser = null;
+    this.stream = null;
+    this.previousDb = 0;
+    this.running = false;
+    this.onDbUpdate = null; // callback(db)
+  }
+
+  async start() {
+    if (this.running) return true;
+    try {
+      this.stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const source = this.ctx.createMediaStreamSource(this.stream);
+      this.analyser = this.ctx.createAnalyser();
+      this.analyser.fftSize = 2048;
+      this.analyser.smoothingTimeConstant = 0.3;
+      source.connect(this.analyser);
+      // 不连 destination，避免回音
+      this.running = true;
+      this.previousDb = 0;
+      this._tick();
+      return true;
+    } catch (err) {
+      console.error('麦克风权限被拒绝:', err);
+      return false;
+    }
+  }
+
+  _tick() {
+    if (!this.running) return;
+    const buffer = new Uint8Array(this.analyser.fftSize);
+    this.analyser.getByteTimeDomainData(buffer);
+
+    let sumSquares = 0;
+    for (let i = 0; i < buffer.length; i++) {
+      const normalized = (buffer[i] - 128) / 128;
+      sumSquares += normalized * normalized;
+    }
+    const rms = Math.sqrt(sumSquares / buffer.length);
+    const db = rms > 0.00002 ? 20 * Math.log10(rms / 0.00002) : 0;
+    // 平滑
+    const smoothed = this.previousDb * DB_SMOOTHING + db * (1 - DB_SMOOTHING);
+    this.previousDb = smoothed;
+    const rounded = Math.round(smoothed);
+
+    if (this.onDbUpdate) this.onDbUpdate(rounded);
+
+    setTimeout(() => this._tick(), TICK_MS);
+  }
+
+  stop() {
+    this.running = false;
+    if (this.stream) {
+      this.stream.getTracks().forEach(t => t.stop());
+      this.stream = null;
+    }
+    if (this.ctx && this.ctx.state !== 'closed') {
+      this.ctx.close().catch(() => {});
+      this.ctx = null;
+    }
+    this.analyser = null;
+    this.previousDb = 0;
+  }
+}
+
+// ── 动物实例 ──
+class Animal {
+  constructor(type, paletteIdx) {
+    this.type = type;
+    this.paletteIdx = paletteIdx % (PALETTES[type]?.length || 1);
+    this.x = Math.random() * (canvas.width - ANIMAL_SIZE);
+    this.y = Math.random() * (canvas.height * 0.6) + canvas.height * 0.1;
+    this.state = 'spawn';       // spawn | idle | walk | breed | fade
+    this.frameIdx = 0;          // 动画帧 0-3
+    this.frameTimer = 0;
+    this.dir = Math.random() > 0.5 ? 1 : -1;
+    this.speed = 0.3 + Math.random() * 0.7;  // px/frame
+    this.opacity = 1;
+    this.stateTimer = 0;
+    this.walkTarget = null;     // {x, y} 游走目标
+    this.idleTimer = 0;
+  }
+
+  getPalette() { return PALETTES[this.type]?.[this.paletteIdx] || PALETTES.cat[0]; }
+  getSprite() { return SPRITES[this.type] || SPRITES.cat; }
+}
+
+// ── 游戏引擎 ──
+class GameEngine {
+  constructor() {
+    this.animals = [];
+    this.sessionStats = null;
+  }
+
+  reset() {
+    this.animals = [];
+    this.sessionStats = {
+      totalTicks: 0,
+     达标Ticks: 0,
+      currentDb: 0,
+      peakDb: 0,
+      comboStreak: 0,     // 连击累计秒数
+      comboLevel: 0,      // 0=无, 1=火热, 2=暴风, 3=传说
+      totalSpawned: 0,
+      lastSpawnTick: 0,
+      belowThresholdTicks: 0,
+    };
+  }
+
+  update(db, threshold) {
+    const s = this.sessionStats;
+    s.totalTicks++;
+    s.currentDb = db;
+    if (db > s.peakDb) s.peakDb = db;
+
+    if (db >= threshold) {
+      s.达标Ticks++;
+      s.comboStreak += (TICK_MS / 1000);
+      s.belowThresholdTicks = 0;
+
+      // Combo 判定
+      if (s.comboStreak >= 60)      s.comboLevel = 3;
+      else if (s.comboStreak >= 30) s.comboLevel = 2;
+      else if (s.comboStreak >= 15) s.comboLevel = 1;
+
+      // 繁衍间隔
+      let spawnInterval;
+      if (s.comboLevel >= 3)      spawnInterval = 0.5;
+      else if (s.comboLevel >= 2) spawnInterval = 1.0;
+      else if (s.comboLevel >= 1) spawnInterval = 1.5;
+      else if (s.comboStreak >= 5)spawnInterval = 2.0;
+      else                        spawnInterval = 3.0;
+
+      const spawnTicks = spawnInterval / (TICK_MS / 1000);
+      if (s.totalTicks - s.lastSpawnTick >= spawnTicks) {
+        s.lastSpawnTick = s.totalTicks;
+        const spawnCount = s.comboLevel >= 3 ? 8 : s.comboLevel >= 2 ? 3 : 1;
+        this.spawnAnimals(spawnCount);
+      }
+
+    } else {
+      s.comboStreak = Math.max(0, s.comboStreak - (TICK_MS / 1000) * 2);
+      s.belowThresholdTicks++;
+
+      // 衰减
+      if (s.comboStreak === 0 && this.animals.length > 0) {
+        if (s.belowThresholdTicks * TICK_MS / 1000 > 10) {
+          this.removeAnimals(3);
+        } else if (s.belowThresholdTicks * TICK_MS / 1000 > 3) {
+          this.removeAnimals(1);
+        }
+      }
+
+      // 重置 Combo
+      if (s.comboStreak < 15 && s.comboLevel >= 1) s.comboLevel = 0;
+      if (s.comboStreak < 30 && s.comboLevel >= 2) s.comboLevel = 1;
+      if (s.comboStreak < 60 && s.comboLevel >= 3) s.comboLevel = 2;
+    }
+
+    // 更新所有动物
+    for (const a of this.animals) {
+      this._updateAnimal(a);
+    }
+
+    // 清理死亡动物
+    this.animals = this.animals.filter(a => a.state !== 'dead');
+  }
+
+  spawnAnimals(count) {
+    const types = Object.keys(SPRITES);
+    for (let i = 0; i < count; i++) {
+      if (this.animals.length >= MAX_ANIMALS) break;
+      const type = types[Math.floor(Math.random() * types.length)];
+      const paletteIdx = Math.floor(Math.random() * (PALETTES[type]?.length || 1));
+      const animal = new Animal(type, paletteIdx);
+      this.animals.push(animal);
+      this.sessionStats.totalSpawned++;
+    }
+  }
+
+  removeAnimals(count) {
+    for (let i = 0; i < count && this.animals.length > 0; i++) {
+      // 优先移除 idle 状态的动物
+      const idleIdx = this.animals.findIndex(a => a.state === 'idle');
+      if (idleIdx >= 0) {
+        this.animals[idleIdx].state = 'fade';
+        this.animals[idleIdx].stateTimer = 0;
+      } else {
+        // 随机选一只
+        const idx = Math.floor(Math.random() * this.animals.length);
+        this.animals[idx].state = 'fade';
+        this.animals[idx].stateTimer = 0;
+      }
+    }
+  }
+
+  _updateAnimal(a) {
+    a.stateTimer += TICK_MS / 1000;
+    a.frameTimer += TICK_MS / 1000;
+
+    // 动画帧
+    if (a.frameTimer > 0.2) {
+      a.frameTimer = 0;
+      a.frameIdx = (a.frameIdx + 1) % 4;
+    }
+
+    switch (a.state) {
+      case 'spawn':
+        a.opacity = Math.min(1, a.stateTimer / 0.3);
+        if (a.stateTimer >= 0.3) {
+          a.state = 'idle';
+          a.stateTimer = 0;
+          a.idleTimer = 0;
+        }
+        break;
+
+      case 'idle':
+        a.idleTimer += TICK_MS / 1000;
+        if (a.idleTimer > 1 + Math.random() * 3) {
+          a.state = 'walk';
+          a.stateTimer = 0;
+          a.walkTarget = {
+            x: Math.random() * (canvas.width - ANIMAL_SIZE),
+            y: Math.random() * (canvas.height * 0.6) + canvas.height * 0.1,
+          };
+        }
+        // 随机小跳 (模拟呼吸)
+        a.y += Math.sin(a.frameIdx * Math.PI / 2) * 0.2;
+        break;
+
+      case 'walk':
+        if (a.walkTarget) {
+          const dx = a.walkTarget.x - a.x;
+          const dy = a.walkTarget.y - a.y;
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          if (dist < 2) {
+            a.state = 'idle';
+            a.stateTimer = 0;
+            a.idleTimer = 0;
+          } else {
+            const vx = (dx / dist) * a.speed;
+            const vy = (dy / dist) * a.speed;
+            a.x += vx;
+            a.y += vy;
+            a.dir = dx > 0 ? 1 : -1;
+          }
+        }
+        if (a.stateTimer > 5) { a.state = 'idle'; a.stateTimer = 0; a.idleTimer = 0; }
+        break;
+
+      case 'breed':
+        if (a.stateTimer >= 1.0) {
+          a.state = 'idle';
+          a.stateTimer = 0;
+          a.idleTimer = 0;
+        }
+        break;
+
+      case 'fade':
+        a.opacity = Math.max(0, 1 - a.stateTimer / 0.5);
+        if (a.stateTimer >= 0.5) {
+          a.state = 'dead';
+        }
+        break;
+    }
+
+    // 边界检测
+    a.x = Math.max(0, Math.min(canvas.width - ANIMAL_SIZE, a.x));
+    a.y = Math.max(0, Math.min(canvas.height - ANIMAL_SIZE, a.y));
+  }
+
+  render(ctx) {
+    // 按 Y 排序 (远小近大, 但这里简单按 y 排序模拟深度)
+    const sorted = [...this.animals].sort((a, b) => a.y - b.y);
+
+    for (const a of sorted) {
+      ctx.save();
+      ctx.globalAlpha = a.opacity;
+
+      const sprite = a.getSprite();
+      const palette = a.getPalette();
+      const cx = a.x;
+      const cy = a.y;
+
+      // 处理朝向 (翻转)
+      if (a.dir === -1) {
+        ctx.translate(cx + ANIMAL_SIZE, cy);
+        ctx.scale(-1, 1);
+      } else {
+        ctx.translate(cx, cy);
+      }
+
+      // 绘制像素精灵
+      for (let row = 0; row < sprite.length; row++) {
+        for (let col = 0; col < sprite[row].length; col++) {
+          const ch = sprite[row][col];
+          if (ch === '.') continue;
+          const colorIdx = parseInt(ch) - 1;
+          const color = palette[colorIdx];
+          if (!color) continue;
+
+          ctx.fillStyle = color;
+
+          // 动画偏移: spawn 时从中心扩散, breed 时轻微弹跳
+          let offsetX = 0, offsetY = 0;
+          if (a.state === 'spawn') {
+            const progress = a.stateTimer / 0.3;
+            const scale = 0.3 + progress * 0.7;
+            const cx2 = SPRITE_SIZE / 2;
+            const cy2 = SPRITE_SIZE / 2;
+            offsetX = (col - cx2) * (1 - scale) * PIXEL_SCALE;
+            offsetY = (row - cy2) * (1 - scale) * PIXEL_SCALE;
+          }
+          if (a.state === 'breed') {
+            offsetY = Math.sin(a.stateTimer * 8) * 2;
+          }
+
+          const px = col * PIXEL_SCALE + offsetX;
+          const py = row * PIXEL_SCALE + offsetY;
+          ctx.fillRect(px, py, PIXEL_SCALE, PIXEL_SCALE);
+        }
+      }
+
+      ctx.restore();
+    }
+  }
+
+  getSummary() {
+    const s = this.sessionStats;
+    const totalSec = (s.totalTicks * TICK_MS) / 1000;
+    const达标Sec = (s.达标Ticks * TICK_MS) / 1000;
+    const rate = totalSec > 0 ? (达标Sec / totalSec * 100) : 0;
+    return {
+      totalDuration: totalSec,
+     达标Duration: 达标Sec,
+     达标Rate: rate,
+      peakDb: s.peakDb,
+      avgDb: s.totalTicks > 0
+        ? Math.round(s.currentDb) // 简化: 用最后一次
+        : 0,
+      totalSpawned: s.totalSpawned,
+      comboLevel: s.comboLevel,
+    };
+  }
+}
+
+// ── UI 控制器 ──
+class UIController {
+  constructor() {
+    this.audio = new AudioEngine();
+    this.game = new GameEngine();
+    this.status = 'idle'; // idle | running | paused | finished
+    this.threshold = 60;
+    this.dbHistory = [];  // 用于平均计算
+    this.toastTimer = null;
+
+    this._bindEvents();
+    this._resizeCanvas();
+    this._renderLoop();
+  }
+
+  _bindEvents() {
+    window.addEventListener('resize', () => this._resizeCanvas());
+    $('thresholdSlider').addEventListener('input', () => {
+      this.threshold = parseInt($('thresholdSlider').value);
+      $('thresholdDisplay').textContent = this.threshold + ' dB';
+      $('goalDb').textContent = this.threshold;
+    });
+
+    this.audio.onDbUpdate = (db) => {
+      this.dbHistory.push(db);
+      if (this.dbHistory.length > 30) this.dbHistory.shift(); // 保留3秒
+      this.game.update(db, this.threshold);
+      this._updateUI(db);
+    };
+  }
+
+  _resizeCanvas() {
+    const main = $('mainArea');
+    canvas.width = main.clientWidth;
+    canvas.height = main.clientHeight;
+  }
+
+  async start() {
+    if (this.status === 'running') return;
+    if (this.status === 'paused') return this._resume();
+
+    const ok = await this.audio.start();
+    if (!ok) {
+      this._toast('❌ 无法访问麦克风，请检查浏览器权限设置');
+      return;
+    }
+
+    this.game.reset();
+    this.status = 'running';
+    this.dbHistory = [];
+    this._updateButtons();
+    this._toast('🎙 早读开始！请大声朗读吧～');
+  }
+
+  _resume() {
+    this.audio.running = true;
+    this.audio._tick();
+    this.status = 'running';
+    this._updateButtons();
+    this._toast('▶ 继续早读！');
+  }
+
+  pause() {
+    if (this.status !== 'running') return;
+    this.audio.running = false;
+    this.status = 'paused';
+    this._updateButtons();
+    this._toast('⏸ 已暂停');
+  }
+
+  stop() {
+    if (this.status === 'idle' || this.status === 'finished') return;
+    this.audio.stop();
+    this.status = 'finished';
+    this._updateButtons();
+    this._showSummary();
+  }
+
+  reset() {
+    this.audio.stop();
+    this.game.reset();
+    this.status = 'idle';
+    this.dbHistory = [];
+    this._updateButtons();
+    this._hideSummary();
+    $('currentDb').textContent = '--';
+    $('animalCount').textContent = '0';
+    $('comboLevel').textContent = '-';
+    $('progressFill').style.width = '0%';
+    this._clearComboClasses();
+    this._toast('🔄 准备新一轮早读');
+  }
+
+  _updateUI(db) {
+    $('currentDb').textContent = db;
+    $('animalCount').textContent = this.game.animals.length;
+
+    // 达标率进度条
+    const s = this.game.sessionStats;
+    if (s.totalTicks > 0) {
+      const rate = (s.达标Ticks / s.totalTicks * 100);
+      $('progressFill').style.width = rate + '%';
+      $('progressFill').classList.toggle('warn', rate < 30);
+    }
+
+    // 当前 dB 状态指示
+    const statCurrent = $('statCurrent');
+    statCurrent.classList.toggle('under-threshold', db < this.threshold);
+
+    // Combo 显示
+    this._updateComboDisplay();
+  }
+
+  _updateComboDisplay() {
+    const s = this.game.sessionStats;
+    const statCombo = $('statCombo');
+    this._clearComboClasses();
+
+    if (s.comboLevel === 0) {
+      $('comboLevel').textContent = s.comboStreak > 0 ? '⏳' : '-';
+    } else if (s.comboLevel === 1) {
+      $('comboLevel').textContent = '🔥 火热';
+      statCombo.classList.add('combo-fire');
+    } else if (s.comboLevel === 2) {
+      $('comboLevel').textContent = '⚡ 暴风';
+      statCombo.classList.add('combo-storm');
+    } else if (s.comboLevel === 3) {
+      $('comboLevel').textContent = '🌈 传说';
+      statCombo.classList.add('combo-legend');
+    }
+  }
+
+  _clearComboClasses() {
+    const statCombo = $('statCombo');
+    statCombo.classList.remove('combo-fire', 'combo-storm', 'combo-legend');
+  }
+
+  _updateButtons() {
+    $('btnStart').disabled  = (this.status === 'running');
+    $('btnPause').disabled  = (this.status !== 'running');
+    $('btnStop').disabled   = (this.status === 'idle' || this.status === 'finished');
+    $('thresholdSlider').disabled = (this.status === 'running');
+  }
+
+  _showSummary() {
+    const summary = this.game.getSummary();
+    const format = s => {
+      const m = Math.floor(s / 60);
+      const sec = Math.floor(s % 60);
+      return m > 0 ? `${m}分${sec}秒` : `${sec}秒`;
+    };
+    $('summaryContent').innerHTML = `
+      <div class="summary-row"><span>📅 朗读时长</span><span class="v">${format(summary.totalDuration)}</span></div>
+      <div class="summary-row"><span>✅ 达标时长</span><span class="v">${format(summary.达标Duration)}</span></div>
+      <div class="summary-row"><span>📊 达标率</span><span class="v">${summary.达标Rate.toFixed(1)}%</span></div>
+      <div class="summary-row"><span>🔊 最高分贝</span><span class="v">${summary.peakDb} dB</span></div>
+      <div class="summary-row"><span>🐾 累计出生动物</span><span class="v">${summary.totalSpawned} 只</span></div>
+      <div class="summary-row"><span>🏆 最高 Combo</span><span class="v">${['无','🔥 火热','⚡ 暴风','🌈 传说'][summary.comboLevel]}</span></div>
+    `;
+    $('summaryOverlay').classList.add('show');
+  }
+
+  _hideSummary() {
+    $('summaryOverlay').classList.remove('show');
+  }
+
+  _toast(msg) {
+    const el = $('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    if (this.toastTimer) clearTimeout(this.toastTimer);
+    this.toastTimer = setTimeout(() => el.classList.remove('show'), 2000);
+  }
+
+  _renderLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 绘制草地纹理
+    ctx.fillStyle = '#E8F5E9';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 地面线
+    const groundY = canvas.height * 0.75;
+    ctx.fillStyle = '#A5D6A7';
+    ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+
+    // 草地细节
+    ctx.fillStyle = '#81C784';
+    for (let i = 0; i < canvas.width; i += 60) {
+      ctx.fillRect(i + 20, groundY - 6, 20, 6);
+      ctx.fillRect(i + 40, groundY - 10, 16, 10);
+    }
+
+    // 装饰文字 (空闲时)
+    if (this.status === 'idle') {
+      ctx.fillStyle = 'rgba(0,0,0,0.12)';
+      ctx.font = 'bold 32px "PingFang SC","Microsoft YaHei",sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('🎤 点击「开始早读」来开始吧！', canvas.width / 2, canvas.height / 2 - 20);
+      ctx.fillStyle = 'rgba(0,0,0,0.08)';
+      ctx.font = '16px "PingFang SC","Microsoft YaHei",sans-serif';
+      ctx.fillText('朗读声越大，小动物越多哦～', canvas.width / 2, canvas.height / 2 + 20);
+      ctx.textAlign = 'start';
+    }
+
+    // 暂停状态
+    if (this.status === 'paused') {
+      ctx.fillStyle = 'rgba(0,0,0,0.2)';
+      ctx.font = 'bold 28px "PingFang SC","Microsoft YaHei",sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('⏸ 已暂停', canvas.width / 2, canvas.height / 2);
+      ctx.textAlign = 'start';
+    }
+
+    // 渲染动物
+    this.game.render(ctx);
+
+    // 粒子特效 (Combo)
+    if (this.game.sessionStats && this.game.sessionStats.comboLevel >= 2) {
+      this._renderParticles();
+    }
+
+    requestAnimationFrame(() => this._renderLoop());
+  }
+
+  _renderParticles() {
+    const s = this.game.sessionStats;
+    const count = s.comboLevel >= 3 ? 12 : 6;
+    for (let i = 0; i < count; i++) {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height;
+      const size = 2 + Math.random() * 4;
+      const colors = s.comboLevel >= 3
+        ? ['#9B59B6','#F1C40F','#E74C3C','#2ECC71','#3498DB']
+        : ['#F1C40F','#E74C3C','#FF8C42'];
+      ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+      ctx.globalAlpha = 0.6 + Math.random() * 0.4;
+      ctx.fillRect(x, y, size, size);
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ── 启动 ──
+const controller = new UIController();
+</script>
+</body>
+</html>
